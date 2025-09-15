@@ -1,4 +1,5 @@
 [package]
+edition = "2024"
 name = "snes-apu"
 version = "0.1.12"
 authors = ["ferris <jake@fusetools.com>"]

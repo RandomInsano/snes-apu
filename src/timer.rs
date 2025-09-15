@@ -28,11 +28,11 @@ impl Timer {
             self.ticks -= self.resolution;
 
             self.counter_low += 1;
-            if let Some(target) = self.target {
-                if self.counter_low == target {
-                    self.counter_high += 1;
-                    self.counter_low = 0;
-                }
+            if let Some(target) = self.target
+                && self.counter_low == target
+            {
+                self.counter_high += 1;
+                self.counter_low = 0;
             }
         }
     }

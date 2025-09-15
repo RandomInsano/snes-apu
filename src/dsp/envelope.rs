@@ -108,10 +108,10 @@ impl Envelope {
                     }
                 }
 
-                if let Mode::Decay = self.mode {
-                    if (env >> 8) == (env_data >> 5) {
-                        self.mode = Mode::Sustain;
-                    }
+                if let Mode::Decay = self.mode
+                    && (env >> 8) == (env_data >> 5)
+                {
+                    self.mode = Mode::Sustain;
                 }
 
                 self.hidden_level = env; // Super obscure quirk thingy here
