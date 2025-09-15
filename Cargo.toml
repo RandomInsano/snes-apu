@@ -11,6 +11,7 @@ license = "BSD-2-Clause"
 
 [dependencies]
 spc = "0.1.0"
+image  = "0.24"     # for PNG output
 
 [dev-dependencies]
 cpal = "0.4.4"

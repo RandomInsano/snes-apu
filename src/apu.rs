@@ -12,6 +12,7 @@ static DEFAULT_IPL_ROM: [u8; IPL_ROM_LEN] = [
 
 pub struct Apu {
     ram: Box<[u8]>,
+    pub ram_read: Box<[u8; RAM_LEN]>,
     ipl_rom: Box<[u8]>,
 
     pub smp: Option<Box<Smp>>,
@@ -26,8 +27,9 @@ pub struct Apu {
 impl Apu {
     pub fn new() -> Box<Apu> {
         let mut ret = Box::new(Apu {
-            ram: vec![0; RAM_LEN].into_boxed_slice(),
-            ipl_rom: DEFAULT_IPL_ROM.to_vec().into_boxed_slice(),
+            ram: vec![0; RAM_LEN].into(),
+            ram_read: [0; RAM_LEN].into(),
+            ipl_rom: DEFAULT_IPL_ROM.to_vec().into(),
 
             smp: None,
             dsp: None,
@@ -115,17 +117,22 @@ impl Apu {
                 0xfe => self.timers[1].read_counter(),
                 0xff => self.timers[2].read_counter(),
 
-                _ => self.ram[address as usize],
+                _ => {
+                    self.ram_read[address as usize] =
+                        self.ram_read[address as usize].saturating_add(1);
+                    self.ram[address as usize]
+                }
             }
         } else if address >= 0xffc0 && self.is_ipl_rom_enabled {
             self.ipl_rom[(address - 0xffc0) as usize]
         } else {
+            self.ram_read[address as usize] = self.ram_read[address as usize].saturating_add(1);
             self.ram[address as usize]
         }
     }
 
     pub fn write_memory(&mut self, address: u32, value: u8) {
-        let address = address & 0xffff;
+        let address = address & (RAM_LEN as u32 - 1);
         if (0x00f0..0x0100).contains(&address) {
             match address {
                 0xf0 => {
