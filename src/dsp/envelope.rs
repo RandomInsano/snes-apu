@@ -35,7 +35,7 @@ impl Envelope {
     }
 
     #[inline]
-    fn dsp(&self) -> &mut Dsp {
+    fn dsp(&mut self) -> &mut Dsp {
         unsafe { &mut (*self.dsp) }
     }
 

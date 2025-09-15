@@ -111,12 +111,12 @@ impl Voice {
     }
 
     #[inline]
-    fn dsp(&self) -> &mut Dsp {
+    fn dsp(&mut self) -> &mut Dsp {
         unsafe { &mut (*self.dsp) }
     }
 
     #[inline]
-    fn emulator(&self) -> &mut Apu {
+    fn emulator(&mut self) -> &mut Apu {
         unsafe { &mut (*self.emulator) }
     }
 
@@ -224,14 +224,16 @@ impl Voice {
     }
 
     fn read_entry(&mut self) {
-        self.sample_start_address = self.dsp().read_source_dir_start_address(self.source as i32);
-        self.loop_start_address = self.dsp().read_source_dir_loop_address(self.source as i32);
+        let source = self.source as i32;
+        self.sample_start_address = self.dsp().read_source_dir_start_address(source);
+        self.loop_start_address = self.dsp().read_source_dir_loop_address(source);
     }
 
     fn read_next_block(&mut self) {
         let mut buf = [0; 9];
+        let sample_address = self.sample_address;
         for i in 0..9 {
-            buf[i] = self.emulator().read_u8(self.sample_address + (i as u32));
+            buf[i] = self.emulator().read_u8(sample_address + (i as u32));
         }
         self.brr_block_decoder.read(&buf);
         self.sample_address += 9;

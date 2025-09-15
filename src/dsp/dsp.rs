@@ -133,7 +133,7 @@ impl Dsp {
     }
 
     #[inline]
-    fn emulator(&self) -> &mut Apu {
+    fn emulator(&mut self) -> &mut Apu {
         unsafe { &mut (*self.emulator) }
     }
 
@@ -386,15 +386,15 @@ impl Dsp {
         ((self.counter + COUNTER_OFFSETS[rate as usize]) % COUNTER_RATES[rate as usize]) != 0
     }
 
-    pub fn read_source_dir_start_address(&self, index: i32) -> u32 {
+    pub fn read_source_dir_start_address(&mut self, index: i32) -> u32 {
         self.read_source_dir_address(index, 0)
     }
 
-    pub fn read_source_dir_loop_address(&self, index: i32) -> u32 {
+    pub fn read_source_dir_loop_address(&mut self, index: i32) -> u32 {
         self.read_source_dir_address(index, 2)
     }
 
-    fn read_source_dir_address(&self, index: i32, offset: i32) -> u32 {
+    fn read_source_dir_address(&mut self, index: i32, offset: i32) -> u32 {
         let dir_address = (self.source_dir as i32) * 0x100;
         let entry_address = dir_address + index * 4;
         let mut ret = self
