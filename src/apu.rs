@@ -96,8 +96,8 @@ impl Apu {
         }
     }
 
-    pub fn read_u8(&mut self, address: u32) -> u8 {
-        let address = address & 0xffff;
+    pub fn read_memory(&mut self, address: u32) -> u8 {
+        let address = address & RAM_LEN as u32;
         if (0xf0..0x0100).contains(&address) {
             match address {
                 0xf0 | 0xf1 => 0,
@@ -124,7 +124,7 @@ impl Apu {
         }
     }
 
-    pub fn write_u8(&mut self, address: u32, value: u8) {
+    pub fn write_memory(&mut self, address: u32, value: u8) {
         let address = address & 0xffff;
         if (0x00f0..0x0100).contains(&address) {
             match address {
@@ -185,12 +185,12 @@ impl Apu {
     fn set_control_reg(&mut self, value: u8) {
         self.is_ipl_rom_enabled = (value & 0x80) != 0;
         if (value & 0x20) != 0 {
-            self.write_u8(0xf6, 0x00);
-            self.write_u8(0xf7, 0x00);
+            self.write_memory(0xf6, 0x00);
+            self.write_memory(0xf7, 0x00);
         }
         if (value & 0x10) != 0 {
-            self.write_u8(0xf4, 0x00);
-            self.write_u8(0xf5, 0x00);
+            self.write_memory(0xf4, 0x00);
+            self.write_memory(0xf5, 0x00);
         }
         self.timers[0].set_start_stop_bit((value & 0x01) != 0);
         self.timers[1].set_start_stop_bit((value & 0x02) != 0);

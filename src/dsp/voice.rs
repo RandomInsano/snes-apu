@@ -233,7 +233,7 @@ impl Voice {
         let mut buf = [0; 9];
         let sample_address = self.sample_address;
         for i in 0..9 {
-            buf[i] = self.emulator().read_u8(sample_address + (i as u32));
+            buf[i] = self.emulator().read_memory(sample_address + (i as u32));
         }
         self.brr_block_decoder.read(&buf);
         self.sample_address += 9;

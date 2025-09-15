@@ -222,12 +222,13 @@ impl Dsp {
             right_out = dsp_helpers::multiply_volume(right_out, self.vol_right);
 
             let echo_address = (self.echo_start_address + (self.echo_pos as u16)) as u32;
-            let mut left_echo_in = (((((self.emulator().read_u8(echo_address + 1) as i32) << 8)
-                | (self.emulator().read_u8(echo_address) as i32))
+            let mut left_echo_in = (((((self.emulator().read_memory(echo_address + 1) as i32) << 8)
+                | (self.emulator().read_memory(echo_address) as i32))
                 as i16)
                 & !1) as i32;
-            let mut right_echo_in = (((((self.emulator().read_u8(echo_address + 3) as i32) << 8)
-                | (self.emulator().read_u8(echo_address + 2) as i32))
+            let mut right_echo_in = (((((self.emulator().read_memory(echo_address + 3) as i32)
+                << 8)
+                | (self.emulator().read_memory(echo_address + 2) as i32))
                 as i16)
                 & !1) as i32;
 
@@ -254,13 +255,14 @@ impl Dsp {
                             as i32),
                 ) & !1;
 
-                self.emulator().write_u8(echo_address, left_echo_out as u8);
                 self.emulator()
-                    .write_u8(echo_address + 1, (left_echo_out >> 8) as u8);
+                    .write_memory(echo_address, left_echo_out as u8);
                 self.emulator()
-                    .write_u8(echo_address + 2, right_echo_out as u8);
+                    .write_memory(echo_address + 1, (left_echo_out >> 8) as u8);
                 self.emulator()
-                    .write_u8(echo_address + 3, (right_echo_out >> 8) as u8);
+                    .write_memory(echo_address + 2, right_echo_out as u8);
+                self.emulator()
+                    .write_memory(echo_address + 3, (right_echo_out >> 8) as u8);
             }
             if self.echo_pos == 0 {
                 self.echo_length = self.calculate_echo_length();
@@ -399,10 +401,10 @@ impl Dsp {
         let entry_address = dir_address + index * 4;
         let mut ret = self
             .emulator()
-            .read_u8((entry_address as u32) + (offset as u32)) as u32;
+            .read_memory((entry_address as u32) + (offset as u32)) as u32;
         ret |= (self
             .emulator()
-            .read_u8((entry_address as u32) + (offset as u32) + 1) as u32)
+            .read_memory((entry_address as u32) + (offset as u32) + 1) as u32)
             << 8;
         ret
     }
