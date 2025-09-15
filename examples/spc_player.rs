@@ -3,7 +3,7 @@ extern crate futures;
 extern crate snes_apu;
 extern crate spc;
 
-use cpal::{default_endpoint, EventLoop, UnknownTypeBuffer, Voice};
+use cpal::{EventLoop, UnknownTypeBuffer, Voice, default_endpoint};
 
 use futures::stream::Stream;
 use futures::task::{self, Executor, Run};
@@ -16,7 +16,7 @@ use spc::spc::{Emulator, Spc};
 use std::borrow::Cow;
 use std::env;
 use std::fmt::Display;
-use std::io::{stdout, Write};
+use std::io::{Write, stdout};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
@@ -310,11 +310,7 @@ impl LinearResampler {
     fn new(from_sample_rate: u32, to_sample_rate: u32) -> LinearResampler {
         let sample_rate_gcd = {
             fn gcd(a: u32, b: u32) -> u32 {
-                if b == 0 {
-                    a
-                } else {
-                    gcd(b, a % b)
-                }
+                if b == 0 { a } else { gcd(b, a % b) }
             }
 
             gcd(from_sample_rate, to_sample_rate)

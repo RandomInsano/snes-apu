@@ -1,5 +1,5 @@
 use super::super::apu::Apu;
-use super::super::spc::spc::{Spc, REG_LEN};
+use super::super::spc::spc::{REG_LEN, Spc};
 use super::dsp_helpers;
 use super::filter::Filter;
 use super::ring_buffer::RingBuffer;

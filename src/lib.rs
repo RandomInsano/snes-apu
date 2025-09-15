@@ -1,6 +1,6 @@
 extern crate spc;
 
 pub mod apu;
-pub mod smp;
 pub mod dsp;
+pub mod smp;
 mod timer;

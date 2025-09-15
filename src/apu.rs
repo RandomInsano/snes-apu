@@ -1,6 +1,6 @@
 use super::dsp::dsp::Dsp;
 use super::smp::Smp;
-use super::spc::spc::{Spc, IPL_ROM_LEN, RAM_LEN};
+use super::spc::spc::{IPL_ROM_LEN, RAM_LEN, Spc};
 use super::timer::Timer;
 
 static DEFAULT_IPL_ROM: [u8; IPL_ROM_LEN] = [
