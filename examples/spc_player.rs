@@ -3,7 +3,7 @@ extern crate futures;
 extern crate snes_apu;
 extern crate spc;
 
-use cpal::{EventLoop, Voice, UnknownTypeBuffer, default_endpoint};
+use cpal::{default_endpoint, EventLoop, UnknownTypeBuffer, Voice};
 
 use futures::stream::Stream;
 use futures::task::{self, Executor, Run};
@@ -64,8 +64,8 @@ fn play_spc_file<P: AsRef<Path> + Display>(path: P) -> Result<(), Cow<'static, s
         let end_sample = fade_out_sample + id666_tag.fade_out_length * (SAMPLE_RATE as i32) / 1000;
         Some(SpcEndState {
             sample_pos: 0,
-            fade_out_sample: fade_out_sample,
-            end_sample: end_sample,
+            fade_out_sample,
+            end_sample,
         })
     } else {
         None
@@ -89,7 +89,8 @@ fn play_spc_file<P: AsRef<Path> + Display>(path: P) -> Result<(), Cow<'static, s
                         let f = if sample_index >= state.end_sample {
                             0.0
                         } else if sample_index >= state.fade_out_sample {
-                            1.0 - ((sample_index - state.fade_out_sample) as f32) / ((state.end_sample - state.fade_out_sample) as f32)
+                            1.0 - ((sample_index - state.fade_out_sample) as f32)
+                                / ((state.end_sample - state.fade_out_sample) as f32)
                         } else {
                             1.0
                         };
@@ -100,7 +101,7 @@ fn play_spc_file<P: AsRef<Path> + Display>(path: P) -> Result<(), Cow<'static, s
                     if state.sample_pos >= state.end_sample {
                         break;
                     }
-                },
+                }
                 _ => {
                     for i in 0..num_frames {
                         ring_buffer.push(left[i as usize]);
@@ -137,15 +138,24 @@ fn print_spc_info<P: AsRef<Path> + Display>(path: P, spc: &Spc) {
         println!("  Dumper name: {}", id666_tag.dumper_name);
         println!("  Comments: {}", id666_tag.comments);
         println!("  Date dumped (MM/DD/YYYY): {}", id666_tag.date_dumped);
-        println!("  Seconds to play before fading out: {}", id666_tag.seconds_to_play_before_fading_out);
+        println!(
+            "  Seconds to play before fading out: {}",
+            id666_tag.seconds_to_play_before_fading_out
+        );
         println!("  Fade out length: {}ms", id666_tag.fade_out_length);
         println!("  Artist name: {}", id666_tag.artist_name);
-        println!("  Default channel disables: {}", id666_tag.default_channel_disables);
-        println!("  Dumping emulator: {}", match id666_tag.dumping_emulator {
-            Emulator::Unknown => "Unknown",
-            Emulator::ZSnes => "ZSnes",
-            Emulator::Snes9x => "Snes9x",
-        });
+        println!(
+            "  Default channel disables: {}",
+            id666_tag.default_channel_disables
+        );
+        println!(
+            "  Dumping emulator: {}",
+            match id666_tag.dumping_emulator {
+                Emulator::Unknown => "Unknown",
+                Emulator::ZSnes => "ZSnes",
+                Emulator::Snes9x => "Snes9x",
+            }
+        );
     } else {
         println!(" No ID666 tag present.");
     };
@@ -209,12 +219,13 @@ pub struct CpalDriver {
 impl CpalDriver {
     pub fn new(sample_rate: u32, desired_latency_ms: u32) -> Result<CpalDriver, Cow<'static, str>> {
         if desired_latency_ms == 0 {
-            return Err(format!("desired_latency_ms must be greater than 0").into());
+            return Err("desired_latency_ms must be greater than 0".into());
         }
 
         let endpoint = default_endpoint().ok_or("Failed to get audio endpoint")?;
 
-        let format = endpoint.supported_formats()
+        let format = endpoint
+            .supported_formats()
             .map_err(|e| format!("Failed to get supported format list for endpoint: {}", e))?
             .find(|format| format.channels.len() == 2)
             .ok_or("Failed to find format with 2 channels")?;
@@ -232,7 +243,8 @@ impl CpalDriver {
 
         let event_loop = EventLoop::new();
 
-        let (mut voice, stream) = Voice::new(&endpoint, &format, &event_loop).map_err(|e| format!("Failed to create voice: {}", e))?;
+        let (mut voice, stream) = Voice::new(&endpoint, &format, &event_loop)
+            .map_err(|e| format!("Failed to create voice: {}", e))?;
         voice.play();
 
         let mut resampler = LinearResampler::new(sample_rate as _, format.samples_rate.0 as _);
@@ -248,32 +260,34 @@ impl CpalDriver {
                             *out = resampler.next(&mut *read_ring_buffer);
                         }
                     }
-                },
+                }
                 UnknownTypeBuffer::U16(mut buffer) => {
                     for sample in buffer.chunks_mut(format.channels.len()) {
                         for out in sample.iter_mut() {
-                            *out = ((resampler.next(&mut *read_ring_buffer) as isize) + 32768) as u16;
+                            *out =
+                                ((resampler.next(&mut *read_ring_buffer) as isize) + 32768) as u16;
                         }
                     }
-                },
+                }
                 UnknownTypeBuffer::F32(mut buffer) => {
                     for sample in buffer.chunks_mut(format.channels.len()) {
                         for out in sample.iter_mut() {
                             *out = (resampler.next(&mut *read_ring_buffer) as f32) / 32768.0;
                         }
                     }
-                },
+                }
             }
 
             Ok(())
-        })).execute(Arc::new(CpalDriverExecutor));
+        }))
+        .execute(Arc::new(CpalDriverExecutor));
 
         let render_thread_join_handle = thread::spawn(move || {
             event_loop.run();
         });
 
         Ok(CpalDriver {
-            ring_buffer: ring_buffer,
+            ring_buffer,
 
             _voice: voice,
             _render_thread_join_handle: render_thread_join_handle,
@@ -318,14 +332,25 @@ impl LinearResampler {
         }
     }
 
-    fn next(&mut self, input: &mut Iterator<Item = i16>) -> i16 {
+    fn next(&mut self, input: &mut dyn Iterator<Item = i16>) -> i16 {
         fn interpolate(a: i16, b: i16, num: u32, denom: u32) -> i16 {
-            (((a as i32) * ((denom - num) as i32) + (b as i32) * (num as i32)) / (denom as i32)) as _
+            (((a as i32) * ((denom - num) as i32) + (b as i32) * (num as i32)) / (denom as i32))
+                as _
         }
 
         let ret = match self.current_frame_channel_offset {
-            0 => interpolate(self.current_from_frame[0], self.next_from_frame[0], self.from_fract_pos, self.to_sample_rate),
-            _ => interpolate(self.current_from_frame[1], self.next_from_frame[1], self.from_fract_pos, self.to_sample_rate)
+            0 => interpolate(
+                self.current_from_frame[0],
+                self.next_from_frame[0],
+                self.from_fract_pos,
+                self.to_sample_rate,
+            ),
+            _ => interpolate(
+                self.current_from_frame[1],
+                self.next_from_frame[1],
+                self.from_fract_pos,
+                self.to_sample_rate,
+            ),
         };
 
         self.current_frame_channel_offset += 1;
