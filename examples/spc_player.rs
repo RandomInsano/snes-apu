@@ -8,6 +8,7 @@ use cpal::{EventLoop, UnknownTypeBuffer, Voice, default_endpoint};
 use futures::stream::Stream;
 use futures::task::{self, Executor, Run};
 
+use image::{GrayImage, Luma};
 use snes_apu::apu::Apu;
 use snes_apu::dsp::dsp::{BUFFER_LEN, SAMPLE_RATE};
 
@@ -16,11 +17,15 @@ use spc::spc::{Emulator, Spc};
 use std::borrow::Cow;
 use std::env;
 use std::fmt::Display;
-use std::io::{Write, stdout};
+use std::fs::File;
+use std::io::{Read, Write, stdout};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
+
+const IMAGE_H: u32 = 256;
+const IMAGE_W: u32 = 256;
 
 struct SpcEndState {
     sample_pos: i32,
@@ -48,7 +53,7 @@ fn do_it() -> Result<(), Cow<'static, str>> {
 fn play_spc_file<P: AsRef<Path> + Display>(path: P) -> Result<(), Cow<'static, str>> {
     let spc = Spc::load(&path).map_err(|e| format!("Could not load spc file: {}", e))?;
 
-    print_spc_info(path, &spc);
+    print_spc_info(&path, &spc);
 
     let mut apu = Apu::from_spc(&spc);
     // Most SPC's have crap in the echo buffer on startup, so while it's not technically correct, we'll clear that.
@@ -118,10 +123,51 @@ fn play_spc_file<P: AsRef<Path> + Display>(path: P) -> Result<(), Cow<'static, s
         thread::sleep(Duration::from_millis(5));
     }
 
+    let image_path = path.to_string() + ".png";
+    println!("\nWriting image to {}", image_path);
+    dump_binary_image(&apu, image_path).map_err(|_| "Failed to write image")?;
+
+    println!("Writing cleansed SPC");
+    dump_clensed_spc(&apu, path)?;
+
     Ok(())
 }
 
-fn print_spc_info<P: AsRef<Path> + Display>(path: P, spc: &Spc) {
+fn dump_binary_image<P: AsRef<Path>>(apu: &Apu, path: P) -> image::ImageResult<()> {
+    let mut img = GrayImage::new(IMAGE_W, IMAGE_H);
+    for addr in 0..spc::spc::RAM_LEN {
+        let idx = addr;
+        let x = (idx % IMAGE_W as usize) as u32;
+        let y = (idx / IMAGE_W as usize) as u32;
+        let lit = if apu.ram_read[addr] > 0 { 255u8 } else { 0u8 };
+        img.put_pixel(x, y, Luma([apu.ram_read[addr]]));
+    }
+    img.save(path)
+}
+
+fn dump_clensed_spc<P: AsRef<Path>>(apu: &Apu, path: P) -> Result<(), Cow<'static, str>> {
+    // Open files for reading and writing
+    let new_path = format!("{}.clensed.spc", path.as_ref().to_string_lossy());
+    let mut spc_file = File::open(&path).map_err(|_| "Could not open file for reading")?;
+    let mut out_file = File::create(&new_path).map_err(|_| "Could not open file for writing")?;
+
+    let mut file_contents = Vec::new();
+    let file_len = spc_file
+        .read_to_end(&mut file_contents)
+        .map_err(|_| "Could not read file")?;
+
+    for (addr, byte) in file_contents.iter().take(file_len).enumerate() {
+        let value = if apu.ram_read[addr] == 0 { 0 } else { *byte };
+
+        out_file
+            .write_all(&[value])
+            .map_err(|_| "Could not write to file")?;
+    }
+
+    Ok(())
+}
+
+fn print_spc_info<P: AsRef<Path> + Display>(path: &P, spc: &Spc) {
     println!("SPC: {}", path);
     println!(" Version Minor: {}", spc.version_minor);
     println!(" PC: {}", spc.pc);

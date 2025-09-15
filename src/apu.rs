@@ -99,7 +99,7 @@ impl Apu {
     }
 
     pub fn read_memory(&mut self, address: u32) -> u8 {
-        let address = address & RAM_LEN as u32;
+        let address = address & (RAM_LEN as u32 - 1);
         if (0xf0..0x0100).contains(&address) {
             match address {
                 0xf0 | 0xf1 => 0,
