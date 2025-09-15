@@ -1,17 +1,13 @@
-use super::smp::Smp;
 use super::dsp::dsp::Dsp;
+use super::smp::Smp;
+use super::spc::spc::{Spc, IPL_ROM_LEN, RAM_LEN};
 use super::timer::Timer;
-use super::spc::spc::{Spc, RAM_LEN, IPL_ROM_LEN};
 
 static DEFAULT_IPL_ROM: [u8; IPL_ROM_LEN] = [
-    0xcd, 0xef, 0xbd, 0xe8, 0x00, 0xc6, 0x1d, 0xd0,
-    0xfc, 0x8f, 0xaa, 0xf4, 0x8f, 0xbb, 0xf5, 0x78,
-    0xcc, 0xf4, 0xd0, 0xfb, 0x2f, 0x19, 0xeb, 0xf4,
-    0xd0, 0xfc, 0x7e, 0xf4, 0xd0, 0x0b, 0xe4, 0xf5,
-    0xcb, 0xf4, 0xd7, 0x00, 0xfc, 0xd0, 0xf3, 0xab,
-    0x01, 0x10, 0xef, 0x7e, 0xf4, 0x10, 0xeb, 0xba,
-    0xf6, 0xda, 0x00, 0xba, 0xf4, 0xc4, 0xf4, 0xdd,
-    0x5d, 0xd0, 0xdb, 0x1f, 0x00, 0x00, 0xc0, 0xff,
+    0xcd, 0xef, 0xbd, 0xe8, 0x00, 0xc6, 0x1d, 0xd0, 0xfc, 0x8f, 0xaa, 0xf4, 0x8f, 0xbb, 0xf5, 0x78,
+    0xcc, 0xf4, 0xd0, 0xfb, 0x2f, 0x19, 0xeb, 0xf4, 0xd0, 0xfc, 0x7e, 0xf4, 0xd0, 0x0b, 0xe4, 0xf5,
+    0xcb, 0xf4, 0xd7, 0x00, 0xfc, 0xd0, 0xf3, 0xab, 0x01, 0x10, 0xef, 0x7e, 0xf4, 0x10, 0xeb, 0xba,
+    0xf6, 0xda, 0x00, 0xba, 0xf4, 0xc4, 0xf4, 0xdd, 0x5d, 0xd0, 0xdb, 0x1f, 0x00, 0x00, 0xc0, 0xff,
 ];
 
 pub struct Apu {
@@ -24,14 +20,14 @@ pub struct Apu {
     timers: [Timer; 3],
 
     is_ipl_rom_enabled: bool,
-    dsp_reg_address: u8
+    dsp_reg_address: u8,
 }
 
 impl Apu {
     pub fn new() -> Box<Apu> {
         let mut ret = Box::new(Apu {
             ram: vec![0; RAM_LEN].into_boxed_slice(),
-            ipl_rom: DEFAULT_IPL_ROM.iter().cloned().collect::<Vec<_>>().into_boxed_slice(),
+            ipl_rom: DEFAULT_IPL_ROM.to_vec().into_boxed_slice(),
 
             smp: None,
             dsp: None,
@@ -39,7 +35,7 @@ impl Apu {
             timers: [Timer::new(256), Timer::new(256), Timer::new(32)],
 
             is_ipl_rom_enabled: true,
-            dsp_reg_address: 0
+            dsp_reg_address: 0,
         });
         let ret_ptr = &mut *ret as *mut _;
         ret.smp = Some(Box::new(Smp::new(ret_ptr)));
@@ -89,7 +85,8 @@ impl Apu {
             dsp.flush();
         }
 
-        dsp.output_buffer.read(left_buffer, right_buffer, num_samples);
+        dsp.output_buffer
+            .read(left_buffer, right_buffer, num_samples);
     }
 
     pub fn cpu_cycles_callback(&mut self, num_cycles: i32) {
@@ -101,20 +98,24 @@ impl Apu {
 
     pub fn read_u8(&mut self, address: u32) -> u8 {
         let address = address & 0xffff;
-        if address >= 0xf0 && address < 0x0100 {
+        if (0xf0..0x0100).contains(&address) {
             match address {
                 0xf0 | 0xf1 => 0,
 
                 0xf2 => self.dsp_reg_address,
-                0xf3 => self.dsp.as_mut().unwrap().get_register(self.dsp_reg_address),
+                0xf3 => self
+                    .dsp
+                    .as_mut()
+                    .unwrap()
+                    .get_register(self.dsp_reg_address),
 
-                0xfa ... 0xfc => 0,
+                0xfa..=0xfc => 0,
 
                 0xfd => self.timers[0].read_counter(),
                 0xfe => self.timers[1].read_counter(),
                 0xff => self.timers[2].read_counter(),
 
-                _ => self.ram[address as usize]
+                _ => self.ram[address as usize],
             }
         } else if address >= 0xffc0 && self.is_ipl_rom_enabled {
             self.ipl_rom[(address - 0xffc0) as usize]
@@ -125,20 +126,39 @@ impl Apu {
 
     pub fn write_u8(&mut self, address: u32, value: u8) {
         let address = address & 0xffff;
-        if address >= 0x00f0 && address < 0x0100 {
+        if (0x00f0..0x0100).contains(&address) {
             match address {
-                0xf0 => { self.set_test_reg(value); },
-                0xf1 => { self.set_control_reg(value); },
-                0xf2 => { self.dsp_reg_address = value; },
-                0xf3 => { self.dsp.as_mut().unwrap().set_register(self.dsp_reg_address, value); },
+                0xf0 => {
+                    self.set_test_reg(value);
+                }
+                0xf1 => {
+                    self.set_control_reg(value);
+                }
+                0xf2 => {
+                    self.dsp_reg_address = value;
+                }
+                0xf3 => {
+                    self.dsp
+                        .as_mut()
+                        .unwrap()
+                        .set_register(self.dsp_reg_address, value);
+                }
 
-                0xf4 ... 0xf9 => { self.ram[address as usize] = value; },
+                0xf4..=0xf9 => {
+                    self.ram[address as usize] = value;
+                }
 
-                0xfa => { self.timers[0].set_target(value); },
-                0xfb => { self.timers[1].set_target(value); },
-                0xfc => { self.timers[2].set_target(value); },
+                0xfa => {
+                    self.timers[0].set_target(value);
+                }
+                0xfb => {
+                    self.timers[1].set_target(value);
+                }
+                0xfc => {
+                    self.timers[2].set_target(value);
+                }
 
-                _ => () // Do nothing
+                _ => (), // Do nothing
             }
         } else {
             self.ram[address as usize] = value;

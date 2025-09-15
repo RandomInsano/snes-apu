@@ -4,18 +4,18 @@ pub struct Timer {
     ticks: i32,
     target: Option<u8>,
     counter_low: u8,
-    counter_high: u8
+    counter_high: u8,
 }
 
 impl Timer {
     pub fn new(resolution: i32) -> Timer {
         Timer {
-            resolution: resolution,
+            resolution,
             is_running: false,
             ticks: 0,
             target: None,
             counter_low: 0,
-            counter_high: 0
+            counter_high: 0,
         }
     }
 
@@ -48,7 +48,7 @@ impl Timer {
     pub fn set_target(&mut self, value: u8) {
         self.target = match value {
             0 => None,
-            x => Some(x)
+            x => Some(x),
         };
     }
 
