@@ -1,5 +1,10 @@
-# snes-apu [![Build Status](https://travis-ci.org/emu-rs/snes-apu.svg)](https://travis-ci.org/emu-rs/snes-apu) [![Crates.io](https://img.shields.io/crates/v/snes-apu.svg)](https://crates.io/crates/snes-apu) [![Crates.io](https://img.shields.io/crates/l/emu.svg)](https://github.com/emu-rs/snes-apu/blob/master/LICENSE)
-A Super Nintendo audio unit emulator.
+# snes-apu 
+Super Nintendo audio unit emulator.
+
+Forked from [emu-rs/snes-apu](https://github.com/emu-rs/snes-apu).
+
+Changes from upstream thus far:
+* Clippy lint fixes
 
 ## Description
 This is a highly-accurate emulator for the audio portion of the Super Nintendo.
