@@ -92,12 +92,12 @@ impl Smp {
 
     fn read(&mut self, addr: u16) -> u8 {
         self.cycles(1);
-        self.emulator().read_u8(addr as u32)
+        self.emulator().read_u8(addr)
     }
 
     fn write(&mut self, addr: u16, value: u8) {
         self.cycles(1);
-        self.emulator().write_u8(addr as u32, value);
+        self.emulator().write_u8(addr, value);
     }
 
     fn read_pc(&mut self) -> u8 {

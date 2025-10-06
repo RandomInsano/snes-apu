@@ -228,7 +228,7 @@ impl Dsp {
             left_out = dsp_helpers::multiply_volume(left_out, self.vol_left);
             right_out = dsp_helpers::multiply_volume(right_out, self.vol_right);
 
-            let echo_address = (self.echo_start_address + (self.echo_pos as u16)) as u32;
+            let echo_address = self.echo_start_address + self.echo_pos as u16;
             let mut left_echo_in = (((((self.emulator().read_u8(echo_address + 1) as i32) << 8)
                 | (self.emulator().read_u8(echo_address) as i32))
                 as i16)
@@ -393,24 +393,19 @@ impl Dsp {
         ((self.counter + COUNTER_OFFSETS[rate as usize]) % COUNTER_RATES[rate as usize]) != 0
     }
 
-    pub fn read_source_dir_start_address(&mut self, index: i32) -> u32 {
+    pub fn read_source_dir_start_address(&mut self, index: u16) -> u16 {
         self.read_source_dir_address(index, 0)
     }
 
-    pub fn read_source_dir_loop_address(&mut self, index: i32) -> u32 {
+    pub fn read_source_dir_loop_address(&mut self, index: u16) -> u16 {
         self.read_source_dir_address(index, 2)
     }
 
-    fn read_source_dir_address(&mut self, index: i32, offset: i32) -> u32 {
-        let dir_address = (self.source_dir as i32) * 0x100;
+    fn read_source_dir_address(&mut self, index: u16, offset: u16) -> u16 {
+        let dir_address = (self.source_dir as u16) * 0x100;
         let entry_address = dir_address + index * 4;
-        let mut ret = self
-            .emulator()
-            .read_u8((entry_address as u32) + (offset as u32)) as u32;
-        ret |= (self
-            .emulator()
-            .read_u8((entry_address as u32) + (offset as u32) + 1) as u32)
-            << 8;
+        let mut ret = self.emulator().read_u8(entry_address + offset) as u16;
+        ret |= (self.emulator().read_u8(entry_address + offset + 1) as u16) << 8;
         ret
     }
 

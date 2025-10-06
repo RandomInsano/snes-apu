@@ -98,8 +98,6 @@ impl Apu {
     }
 
     pub fn read_u8(&mut self, address: u16) -> u8 {
-        let address = address & 0xffff;
-
         match address {
             0xf0..0xf2 => 0,
             0xf2 => self.dsp_reg_address,
@@ -122,8 +120,6 @@ impl Apu {
     }
 
     pub fn write_u8(&mut self, address: u16, value: u8) {
-        let address = address & 0xffff;
-
         match address {
             0xf0 => self.set_test_reg(value),
             0xf1 => self.set_control_reg(value),
