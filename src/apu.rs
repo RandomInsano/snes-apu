@@ -99,70 +99,43 @@ impl Apu {
 
     pub fn read_u8(&mut self, address: u32) -> u8 {
         let address = address & 0xffff;
-        if (0xf0..0x0100).contains(&address) {
-            match address {
-                0xf0 | 0xf1 => 0,
 
-                0xf2 => self.dsp_reg_address,
-                0xf3 => self
-                    .dsp
-                    .as_mut()
-                    .unwrap()
-                    .get_register(self.dsp_reg_address),
+        match address {
+            0xf0..0xf2 => 0,
+            0xf2 => self.dsp_reg_address,
+            0xf3 => self
+                .dsp
+                .as_mut()
+                .unwrap()
+                .get_register(self.dsp_reg_address),
+            0xfa..0xfd => 0,
+            0xfd => self.timers[0].read_counter(),
+            0xfe => self.timers[1].read_counter(),
+            0xff => self.timers[2].read_counter(),
 
-                0xfa..=0xfc => 0,
+            0xffc0..0xffff if self.is_ipl_rom_enabled => self.ipl_rom[(address - 0xffc0) as usize],
 
-                0xfd => self.timers[0].read_counter(),
-                0xfe => self.timers[1].read_counter(),
-                0xff => self.timers[2].read_counter(),
-
-                _ => self.ram[address as usize],
-            }
-        } else if address >= 0xffc0 && self.is_ipl_rom_enabled {
-            self.ipl_rom[(address - 0xffc0) as usize]
-        } else {
-            self.ram[address as usize]
+            _ => self.ram[address as usize],
         }
     }
 
     pub fn write_u8(&mut self, address: u32, value: u8) {
         let address = address & 0xffff;
-        if (0x00f0..0x0100).contains(&address) {
-            match address {
-                0xf0 => {
-                    self.set_test_reg(value);
-                }
-                0xf1 => {
-                    self.set_control_reg(value);
-                }
-                0xf2 => {
-                    self.dsp_reg_address = value;
-                }
-                0xf3 => {
-                    self.dsp
-                        .as_mut()
-                        .unwrap()
-                        .set_register(self.dsp_reg_address, value);
-                }
 
-                0xf4..=0xf9 => {
-                    self.ram[address as usize] = value;
-                }
-
-                0xfa => {
-                    self.timers[0].set_target(value);
-                }
-                0xfb => {
-                    self.timers[1].set_target(value);
-                }
-                0xfc => {
-                    self.timers[2].set_target(value);
-                }
-
-                _ => (), // Do nothing
-            }
-        } else {
-            self.ram[address as usize] = value;
+        match address {
+            0xf0 => self.set_test_reg(value),
+            0xf1 => self.set_control_reg(value),
+            0xf2 => self.dsp_reg_address = value,
+            0xf3 => self
+                .dsp
+                .as_mut()
+                .unwrap()
+                .set_register(self.dsp_reg_address, value),
+            0xfa => self.timers[0].set_target(value),
+            0xfb => self.timers[1].set_target(value),
+            0xfc => self.timers[2].set_target(value),
+            0xfd..0xff => {}
+            _ => self.ram[address as usize] = value,
         }
     }
 
