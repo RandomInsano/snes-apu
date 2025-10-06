@@ -232,8 +232,8 @@ impl Voice {
     fn read_next_block(&mut self) {
         let mut buf = [0; 9];
         let sample_address = self.sample_address;
-        for i in 0..9 {
-            buf[i] = self.emulator().read_u8(sample_address + i as u16);
+        for (index, value) in buf.iter_mut().enumerate() {
+            *value = self.emulator().read_u8(sample_address + index as u16);
         }
         self.brr_block_decoder.read(&buf);
         self.sample_address += 9;
