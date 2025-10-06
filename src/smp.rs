@@ -1,4 +1,4 @@
-use super::apu::Apu;
+use crate::apu::Apu;
 
 pub struct Smp {
     emulator: *mut Apu,

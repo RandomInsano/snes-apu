@@ -1,9 +1,9 @@
-use super::super::apu::Apu;
-use super::brr_block_decoder::BrrBlockDecoder;
-use super::dsp::Dsp;
-use super::dsp_helpers;
-use super::envelope::Envelope;
-use super::gaussian::{HALF_KERNEL, HALF_KERNEL_SIZE};
+use crate::apu::Apu;
+use crate::dsp::Dsp;
+use crate::dsp::brr_block_decoder::BrrBlockDecoder;
+use crate::dsp::dsp_helpers;
+use crate::dsp::envelope::Envelope;
+use crate::dsp::gaussian::{HALF_KERNEL, HALF_KERNEL_SIZE};
 
 const RESAMPLE_BUFFER_LEN: usize = 4;
 

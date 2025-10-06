@@ -1,4 +1,4 @@
-use super::dsp::BUFFER_LEN;
+use crate::dsp::BUFFER_LEN;
 
 pub struct RingBuffer {
     left_buffer: Box<[i16]>,

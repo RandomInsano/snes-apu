@@ -1,7 +1,8 @@
-use super::dsp::dsp::Dsp;
-use super::smp::Smp;
-use super::spc::spc::{IPL_ROM_LEN, RAM_LEN, Spc};
-use super::timer::Timer;
+use spc::spc::{IPL_ROM_LEN, RAM_LEN, Spc};
+
+use crate::dsp::Dsp;
+use crate::smp::Smp;
+use crate::timer::Timer;
 
 static DEFAULT_IPL_ROM: [u8; IPL_ROM_LEN] = [
     0xcd, 0xef, 0xbd, 0xe8, 0x00, 0xc6, 0x1d, 0xd0, 0xfc, 0x8f, 0xaa, 0xf4, 0x8f, 0xbb, 0xf5, 0x78,

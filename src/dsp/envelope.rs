@@ -1,4 +1,4 @@
-use super::dsp::Dsp;
+use crate::dsp::Dsp;
 
 enum Mode {
     Attack,

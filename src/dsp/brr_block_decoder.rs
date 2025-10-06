@@ -1,4 +1,4 @@
-use super::dsp_helpers;
+use crate::dsp::dsp_helpers;
 
 pub struct BrrBlockDecoder {
     pub is_end: bool,
