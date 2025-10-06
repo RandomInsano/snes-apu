@@ -156,7 +156,7 @@ fn print_spc_info<P: AsRef<Path> + Display>(path: P, spc: &Spc) {
     };
 }
 
-pub struct RingBuffer {
+struct RingBuffer {
     inner: Box<[i16]>,
 
     write_pos: usize,

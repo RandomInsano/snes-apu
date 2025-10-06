@@ -11,8 +11,23 @@ static DEFAULT_IPL_ROM: [u8; IPL_ROM_LEN] = [
     0xf6, 0xda, 0x00, 0xba, 0xf4, 0xc4, 0xf4, 0xdd, 0x5d, 0xd0, 0xdb, 0x1f, 0x00, 0x00, 0xc0, 0xff,
 ];
 
+pub trait ApuMemory {
+    fn read_u8(&self, address: u16) -> u8;
+    fn write_u8(&mut self, address: u16, value: u8);
+}
+
+impl ApuMemory for [u8; RAM_LEN] {
+    fn read_u8(&self, address: u16) -> u8 {
+        self[address as usize]
+    }
+
+    fn write_u8(&mut self, address: u16, value: u8) {
+        self[address as usize] = value;
+    }
+}
+
 pub struct Apu {
-    ram: Box<[u8]>,
+    ram: Box<dyn ApuMemory>,
     ipl_rom: Box<[u8]>,
 
     pub smp: Option<Box<Smp>>,
@@ -26,8 +41,12 @@ pub struct Apu {
 
 impl Apu {
     pub fn new() -> Box<Apu> {
+        Apu::new_with_memory(Box::new([0; RAM_LEN]))
+    }
+
+    pub fn new_with_memory(ram: Box<dyn ApuMemory>) -> Box<Apu> {
         let mut ret = Box::new(Apu {
-            ram: vec![0; RAM_LEN].into_boxed_slice(),
+            ram,
             ipl_rom: DEFAULT_IPL_ROM.to_vec().into_boxed_slice(),
 
             smp: None,
@@ -48,7 +67,7 @@ impl Apu {
         let mut ret = Apu::new();
 
         for i in 0..RAM_LEN {
-            ret.ram[i] = spc.ram[i];
+            ret.ram.write_u8(i as u16, spc.ram[i]);
         }
         for i in 0..IPL_ROM_LEN {
             ret.ipl_rom[i] = spc.ipl_rom[i];
@@ -67,13 +86,13 @@ impl Apu {
         ret.dsp.as_mut().unwrap().set_state(spc);
 
         for i in 0..3 {
-            let target = ret.ram[0xfa + i];
-            ret.timers[i].set_target(target);
+            let target = ret.ram.read_u8(0xfa + i);
+            ret.timers[i as usize].set_target(target);
         }
-        let control_reg = ret.ram[0xf1];
+        let control_reg = ret.ram.read_u8(0xf1);
         ret.set_control_reg(control_reg);
 
-        ret.dsp_reg_address = ret.ram[0xf2];
+        ret.dsp_reg_address = ret.ram.read_u8(0xf2);
 
         ret
     }
@@ -115,7 +134,7 @@ impl Apu {
                 self.ipl_rom[(address - 0xffc0) as usize]
             }
 
-            _ => self.ram[address as usize],
+            _ => self.ram.read_u8(address),
         }
     }
 
@@ -133,7 +152,7 @@ impl Apu {
             0xfb => self.timers[1].set_target(value),
             0xfc => self.timers[2].set_target(value),
             0xfd..0x100 => {}
-            _ => self.ram[address as usize] = value,
+            _ => self.ram.write_u8(address, value),
         }
     }
 
@@ -145,7 +164,7 @@ impl Apu {
             end_addr = RAM_LEN as i32;
         }
         for i in dsp.get_echo_start_address() as i32..end_addr {
-            self.ram[i as usize] = 0xff;
+            self.ram.write_u8(i as u16, 0xff);
         }
     }
 
